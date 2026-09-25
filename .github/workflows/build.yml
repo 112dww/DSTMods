@@ -1,0 +1,49 @@
+name: Build DSTMods
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    env:
+      THEOS: /Users/runner/theos
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Theos
+        run: |
+          git clone --recursive https://github.com/theos/theos.git $THEOS
+
+      - name: Install Dependencies
+        run: |
+          brew update
+          brew install make ldid
+
+      - name: Build
+        run: |
+          export THEOS=$THEOS
+          make clean
+          make
+
+          mkdir -p output
+
+          DYLIB=$(find .theos -name "DSTMods.dylib" | head -n 1)
+
+          if [ -z "$DYLIB" ]; then
+            echo "DSTMods.dylib not found"
+            exit 1
+          fi
+
+          cp "$DYLIB" output/DSTMods.dylib
+
+      - name: Upload Dylib
+        uses: actions/upload-artifact@v4
+        with:
+          name: DSTMods
+          path: output/DSTMods.dylib
